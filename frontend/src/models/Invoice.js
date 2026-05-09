@@ -46,7 +46,7 @@ const invoiceSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    date: { type: String, required: true, index: true }, // "YYYY-MM-DD" day grouping
+    date: { type: Date, required: true, index: true }, // day grouping
   },
   { timestamps: true },
 );

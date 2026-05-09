@@ -6,15 +6,8 @@ const {
 } = require("../controllers/settingsController");
 const { protect } = require("../middlewares/authMiddleware");
 const { authorize } = require("../middlewares/roleMiddleware");
-const { validate, settingsSchema } = require("../validators/schemas");
 
 router.get("/", protect, getSettings);
-router.put(
-  "/",
-  protect,
-  authorize("admin"),
-  validate(settingsSchema),
-  updateSettings
-);
+router.put("/", protect, authorize("admin"), updateSettings);
 
 module.exports = router;

@@ -15,17 +15,6 @@ const generateCode = () => {
   return Math.floor(1000 + Math.random() * 9000).toString();
 };
 
-// Helper: cookie options based on environment
-const getCookieOptions = () => {
-  const isProd = process.env.NODE_ENV === "production";
-  return {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? "none" : "strict",
-    maxAge: 18 * 60 * 60 * 1000, // 18 hours
-  };
-};
-
 // @desc    Login step 1: username + password
 // @route   POST /api/auth/login
 // @access  Public
@@ -52,7 +41,12 @@ const loginStep1 = async (req, res) => {
     // If admin, directly issue JWT
     if (user.role === "admin") {
       const token = generateToken(user._id, user.role);
-      res.cookie("token", token, getCookieOptions());
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 18 * 60 * 60 * 1000,
+      });
       return res.json({ role: user.role, message: "Login successful" });
     }
 
@@ -68,6 +62,9 @@ const loginStep1 = async (req, res) => {
       });
     }
 
+    // Cashier needs second step: return sessionId (to store temporarily)
+    // We'll store a temporary token or just require code verification
+    // For simplicity: return sessionId and require code
     return res.json({
       role: user.role,
       sessionId: activeSession._id,
@@ -103,7 +100,12 @@ const verifyCode = async (req, res) => {
 
     // Generate JWT for cashier
     const token = generateToken(session.cashierId._id, session.cashierId.role);
-    res.cookie("token", token, getCookieOptions());
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 18 * 60 * 60 * 1000,
+    });
     res.json({
       role: session.cashierId.role,
       message: "Verified successfully",
@@ -133,11 +135,10 @@ const getMe = async (req, res) => {
 // @route   POST /api/auth/logout
 // @access  Private
 const logout = (req, res) => {
-  const isProd = process.env.NODE_ENV === "production";
   res.clearCookie("token", {
     httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? "none" : "strict",
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
   });
   res.json({ message: "Logged out" });
 };
@@ -157,15 +158,15 @@ const createCashierSession = async (req, res) => {
       return res.status(404).json({ message: "Cashier not found or inactive" });
     }
 
-    // End any currently active session
+    // End any currently active session (any cashier)
     await CashierSession.updateMany(
       { isActive: true },
-      { isActive: false, endedAt: new Date(), endedBy: "replaced" }
+      { isActive: false, endedAt: new Date(), endedBy: "replaced" },
     );
 
     const code = generateCode();
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 18);
+    expiresAt.setHours(expiresAt.getHours() + 18); // 18 hours lifetime
 
     const newSession = await CashierSession.create({
       cashierId: cashier._id,
@@ -177,7 +178,7 @@ const createCashierSession = async (req, res) => {
     res.status(201).json({
       sessionId: newSession._id,
       cashier: cashier.username,
-      code,
+      code, // Normally show this to admin only (to give to cashier)
       expiresAt,
     });
   } catch (error) {
@@ -186,9 +187,9 @@ const createCashierSession = async (req, res) => {
   }
 };
 
-// @desc    Get currently active session
+// @desc    Get currently active session (any cashier)
 // @route   GET /api/cashier-sessions/active
-// @access  Private (admin + cashier)
+// @access  Admin
 const getActiveSession = async (req, res) => {
   try {
     const session = await CashierSession.findOne({ isActive: true })

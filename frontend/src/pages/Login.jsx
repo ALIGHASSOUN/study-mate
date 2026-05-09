@@ -20,7 +20,7 @@ const Login = () => {
     setLoading(true);
     try {
       const result = await dispatch(
-        loginStep1({ username, password }),
+        loginStep1({ username, password })
       ).unwrap();
       if (result.role === "admin") {
         navigate("/");
@@ -28,7 +28,8 @@ const Login = () => {
         navigate("/login/code");
       }
     } catch (err) {
-      toast.error(err.message || "Login failed");
+      // err from rejectWithValue is a string
+      toast.error(typeof err === "string" ? err : err?.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -36,7 +37,6 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-cafe-dark px-4">
-      {/* Card كبيرة، حواف مدورة، ظل خفيف */}
       <div className="w-full max-w-md bg-cafe-deep rounded-2xl shadow-2xl p-8 border border-cafe-mid">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-cafe-teal">Study Cafe</h1>

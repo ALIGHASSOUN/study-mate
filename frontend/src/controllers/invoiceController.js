@@ -85,7 +85,7 @@ const closeReservation = async (req, res) => {
       discountAmount,
       total,
       cashierId: reservation.cashierId,
-      date: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`,
+      date: new Date(start.toDateString()),
     });
 
     reservation.status = "closed";
@@ -114,7 +114,7 @@ const getInvoices = async (req, res) => {
 
     const grouped = {};
     invoices.forEach((inv) => {
-      const dayKey = inv.date; // already "YYYY-MM-DD" string
+      const dayKey = new Date(inv.date).toISOString().split("T")[0];
       if (!grouped[dayKey]) {
         grouped[dayKey] = { date: dayKey, invoices: [], dayTotal: 0, count: 0 };
       }
@@ -124,7 +124,7 @@ const getInvoices = async (req, res) => {
     });
 
     const days = Object.values(grouped).sort(
-      (a, b) => b.date.localeCompare(a.date)
+      (a, b) => new Date(b.date) - new Date(a.date)
     );
 
     res.json({ days, total, page, pages: Math.ceil(total / limit) });
@@ -137,15 +137,16 @@ const getInvoices = async (req, res) => {
 // @route   GET /api/invoices/by-day/:date
 const getInvoicesByDay = async (req, res) => {
   try {
-    // date field is now a "YYYY-MM-DD" string, so exact match
-    const dateStr = req.params.date; // e.g. "2025-05-09"
+    const dayStart = new Date(req.params.date);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
 
-    const invoices = await Invoice.find({ date: dateStr }).sort({
-      createdAt: -1,
-    });
+    const invoices = await Invoice.find({
+      date: { $gte: dayStart, $lt: dayEnd },
+    }).sort({ createdAt: -1 });
 
     const dayTotal = invoices.reduce((sum, inv) => sum + inv.total, 0);
-    res.json({ date: dateStr, invoices, dayTotal });
+    res.json({ date: req.params.date, invoices, dayTotal });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -236,7 +237,7 @@ const createManualInvoice = async (req, res) => {
       discountAmount,
       total,
       cashierId: req.user.userId,
-      date: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`,
+      date: new Date(start.toDateString()),
     });
 
     await AuditLog.create({

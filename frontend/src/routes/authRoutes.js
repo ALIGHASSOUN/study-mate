@@ -11,22 +11,10 @@ const {
 } = require("../controllers/authController");
 const { protect } = require("../middlewares/authMiddleware");
 const { authorize } = require("../middlewares/roleMiddleware");
-const { authLimiter } = require("../middlewares/rateLimiter");
-const {
-  validate,
-  loginSchema,
-  verifyCodeSchema,
-  createSessionSchema,
-} = require("../validators/schemas");
 
-// Public (rate-limited)
-router.post("/login", authLimiter, validate(loginSchema), loginStep1);
-router.post(
-  "/verify-code",
-  authLimiter,
-  validate(verifyCodeSchema),
-  verifyCode
-);
+// Public
+router.post("/login", loginStep1);
+router.post("/verify-code", verifyCode);
 
 // Protected
 router.get("/me", protect, getMe);
@@ -37,15 +25,18 @@ router.post(
   "/cashier-sessions",
   protect,
   authorize("admin"),
-  validate(createSessionSchema),
-  createCashierSession
+  createCashierSession,
 );
-router.get("/cashier-sessions/active", protect, getActiveSession);
+router.get(
+  "/cashier-sessions/active",
+  protect,
+  getActiveSession,
+);
 router.post(
   "/cashier-sessions/:id/end",
   protect,
   authorize("admin"),
-  endSession
+  endSession,
 );
 
 module.exports = router;

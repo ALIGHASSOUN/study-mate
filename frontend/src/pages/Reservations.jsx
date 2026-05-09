@@ -10,6 +10,7 @@ import {
 import { fetchProducts } from "../store/productSlice";
 import toast from "react-hot-toast";
 import { Coffee, Plus, Trash2, X } from "lucide-react";
+import api from "../api/axios";
 
 const Reservations = () => {
   const dispatch = useDispatch();
@@ -43,15 +44,16 @@ const Reservations = () => {
   useEffect(() => {
     dispatch(fetchActiveReservations());
     dispatch(fetchProducts());
+
+    // Fetch active cashier session using api instance (not raw fetch)
     const fetchSession = async () => {
       try {
-        const res = await fetch("/api/auth/cashier-sessions/active", {
-          credentials: "include",
-        });
-        const data = await res.json();
-        if (data.session) setCashierSessionId(data.session._id);
+        const res = await api.get("/auth/cashier-sessions/active");
+        if (res.data.session) {
+          setCashierSessionId(res.data.session._id);
+        }
       } catch (err) {
-        console.error(err);
+        console.error("Could not fetch cashier session:", err.message);
       }
     };
     fetchSession();
@@ -66,12 +68,18 @@ const Reservations = () => {
         const start = new Date(res.startedAt);
         const now = new Date();
         const diffMs = now - start;
-        const minutes = Math.floor(diffMs / 60000);
-        const remainderMinutes = minutes % 10;
-        let billedUnits = Math.floor(minutes / 10);
+        const totalMinutes = Math.floor(diffMs / 60000);
+        const hours = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
+        const remainderMinutes = totalMinutes % 10;
+        let billedUnits = Math.floor(totalMinutes / 10);
         if (remainderMinutes >= 7) billedUnits += 1;
         const cost = billedUnits * (res.pricePerHour / 6);
-        newTimes[res._id] = { minutes, cost: cost.toFixed(2) };
+        newTimes[res._id] = {
+          minutes: totalMinutes,
+          display: `${hours}h ${mins}m`,
+          cost: Math.round(cost),
+        };
       });
       setElapsedTimes(newTimes);
     }, 1000);
@@ -95,7 +103,7 @@ const Reservations = () => {
     const timeCost = billedUnits * (reservation.pricePerHour / 6);
     const itemsCost = reservation.items.reduce(
       (sum, item) => sum + item.price * item.quantity,
-      0,
+      0
     );
     let subtotal = timeCost + itemsCost;
     let discountAmt = 0;
@@ -103,7 +111,15 @@ const Reservations = () => {
       discountAmt = (subtotal * discountPercent) / 100;
     }
     const total = subtotal - discountAmt;
-    setSubtotalPreview({ timeCost, itemsCost, subtotal, discountAmt, total });
+    setSubtotalPreview({
+      timeCost: Math.round(timeCost),
+      itemsCost,
+      subtotal: Math.round(subtotal),
+      discountAmt: Math.round(discountAmt),
+      total: Math.round(total),
+      billedUnits,
+      minutes,
+    });
   };
 
   const handleNewReservation = async (e) => {
@@ -126,7 +142,7 @@ const Reservations = () => {
           type: newReservation.type,
           internetType: newReservation.internetType,
           cashierSessionId,
-        }),
+        })
       ).unwrap();
       toast.success("Reservation created");
       setShowNewModal(false);
@@ -136,7 +152,7 @@ const Reservations = () => {
         internetType: "standard",
       });
     } catch (err) {
-      toast.error(err.message || "Failed to create reservation");
+      toast.error(err.message || err || "Failed to create reservation");
     }
   };
 
@@ -148,21 +164,25 @@ const Reservations = () => {
           id: showOrderModal._id,
           productId: selectedProduct._id,
           quantity,
-        }),
+        })
       ).unwrap();
       toast.success("Item added");
       setSelectedProduct(null);
       setQuantity(1);
       setShowOrderModal(null);
     } catch (err) {
-      toast.error(err.message || "Failed to add item");
+      toast.error(err.message || err || "Failed to add item");
     }
   };
 
   const handleRemoveItem = async (reservationId, itemId) => {
     if (window.confirm("Remove this item?")) {
-      await dispatch(removeItem({ id: reservationId, itemId }));
-      toast.success("Item removed, stock restored");
+      try {
+        await dispatch(removeItem({ id: reservationId, itemId })).unwrap();
+        toast.success("Item removed, stock restored");
+      } catch (err) {
+        toast.error(err.message || "Failed to remove item");
+      }
     }
   };
 
@@ -173,18 +193,32 @@ const Reservations = () => {
           id: showEndModal._id,
           applyDiscount,
           discountPercent: applyDiscount ? discountPercent : 0,
-        }),
+        })
       ).unwrap();
       toast.success("Session closed");
       setShowEndModal(null);
+      // Open print page
       window.open(`/print-invoice/${invoice._id}`, "_blank");
     } catch (err) {
-      toast.error(err);
+      toast.error(err || "Failed to close session");
     }
   };
 
+  const getTypeBadgeColor = (type, internetType) => {
+    if (internetType === "premium") {
+      return type === "double"
+        ? "bg-purple-500/20 text-purple-300"
+        : "bg-yellow-500/20 text-yellow-300";
+    }
+    return type === "double"
+      ? "bg-blue-500/20 text-blue-300"
+      : "bg-cafe-mid/40 text-cafe-light";
+  };
+
   if (user?.role !== "admin" && user?.role !== "cashier")
-    return <div className="text-center mt-10 text-red-500">Access denied.</div>;
+    return (
+      <div className="text-center mt-10 text-red-500">Access denied.</div>
+    );
 
   return (
     <div className="min-h-screen bg-cafe-dark text-cafe-light p-4 md:p-8">
@@ -195,15 +229,22 @@ const Reservations = () => {
           </h1>
           <button
             onClick={() => setShowNewModal(true)}
-            className="bg-cafe-teal hover:bg-cafe-mid px-4 py-2 rounded"
+            className="bg-cafe-teal hover:bg-cafe-mid px-4 py-2 rounded flex items-center gap-2"
           >
-            + New Reservation
+            <Plus size={18} /> New Reservation
           </button>
         </div>
 
+        {!cashierSessionId && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-4 py-3 mb-4 text-yellow-300 text-sm">
+            ⚠ No active cashier session detected. Ask admin to create one before
+            starting reservations.
+          </div>
+        )}
+
         {loading && <p>Loading...</p>}
         {!loading && active.length === 0 && (
-          <div className="text-center py-10 text-cafe-light">
+          <div className="text-center py-10 text-cafe-gray">
             No active reservations.
           </div>
         )}
@@ -216,73 +257,85 @@ const Reservations = () => {
             >
               <div className="flex justify-between items-start flex-wrap gap-2">
                 <div>
-                  <h2 className="text-xl font-bold">
+                  <h2 className="text-xl font-bold flex items-center gap-2 flex-wrap">
                     Chair {res.chairNumbers.join(", ")}
-                    <span className="ml-2 text-sm bg-cafe-mid px-2 py-1 rounded">
+                    <span
+                      className={`text-xs px-2 py-1 rounded ${getTypeBadgeColor(
+                        res.type,
+                        res.internetType
+                      )}`}
+                    >
                       {res.type === "single" ? "Single" : "Double"} /{" "}
                       {res.internetType === "standard" ? "Standard" : "Premium"}
                     </span>
                   </h2>
-                  <p className="text-cafe-light text-sm">
-                    Started: {new Date(res.startedAt).toLocaleTimeString()}
+                  <p className="text-cafe-gray text-sm mt-1">
+                    Started: {new Date(res.startedAt).toLocaleTimeString()} •{" "}
+                    {res.pricePerHour.toLocaleString()} SYP/hr
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-mono">
-                    {elapsedTimes[res._id]?.minutes || 0} min
+                  <p className="text-2xl font-mono text-white">
+                    {elapsedTimes[res._id]?.display || "0h 0m"}
                   </p>
-                  <p className="text-cafe-teal font-bold">
-                    {elapsedTimes[res._id]?.cost || "0"} SYP
+                  <p className="text-cafe-teal font-bold text-lg">
+                    {(elapsedTimes[res._id]?.cost || 0).toLocaleString()} SYP
                   </p>
                 </div>
               </div>
 
               <div className="mt-4">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Coffee size={18} /> Orders
+                <h3 className="font-semibold flex items-center gap-2 text-sm text-cafe-gray">
+                  <Coffee size={16} /> Orders
                 </h3>
-                {res.items.length === 0 && (
-                  <p className="text-sm text-cafe-light">No items yet.</p>
-                )}
-                <ul className="space-y-1 mt-2">
-                  {res.items.map((item) => (
-                    <li
-                      key={item._id}
-                      className="flex justify-between items-center border-b border-cafe-mid/30 py-1"
-                    >
-                      <span>
-                        {item.name} x{item.quantity}
-                      </span>
-                      <div>
-                        <span className="mr-3">
-                          {item.price * item.quantity} SYP
+                {res.items.length === 0 ? (
+                  <p className="text-sm text-cafe-gray/60 mt-1">
+                    No items yet.
+                  </p>
+                ) : (
+                  <ul className="space-y-1 mt-2">
+                    {res.items.map((item) => (
+                      <li
+                        key={item._id}
+                        className="flex justify-between items-center border-b border-cafe-mid/20 py-1 text-sm"
+                      >
+                        <span>
+                          {item.name} ×{item.quantity}
                         </span>
-                        <button
-                          onClick={() => handleRemoveItem(res._id, item._id)}
-                          className="text-red-400"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => setShowOrderModal(res)}
-                  className="mt-3 text-cafe-teal hover:underline text-sm flex items-center gap-1"
-                >
-                  <Plus size={16} /> Add order
-                </button>
-                <button
-                  onClick={() => {
-                    setShowEndModal(res);
-                    setApplyDiscount(res.discountPercent > 0);
-                    setDiscountPercent(res.discountPercent);
-                  }}
-                  className="mt-2 ml-3 bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm"
-                >
-                  End Session
-                </button>
+                        <div className="flex items-center gap-2">
+                          <span>
+                            {(item.price * item.quantity).toLocaleString()} SYP
+                          </span>
+                          <button
+                            onClick={() => handleRemoveItem(res._id, item._id)}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => setShowOrderModal(res)}
+                    className="text-cafe-teal hover:text-white text-sm flex items-center gap-1 border border-cafe-teal/30 px-3 py-1 rounded hover:bg-cafe-teal/10"
+                  >
+                    <Plus size={14} /> Add Order
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowEndModal(res);
+                      setApplyDiscount(res.discountPercent > 0);
+                      setDiscountPercent(res.discountPercent);
+                    }}
+                    className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm"
+                  >
+                    End Session
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -300,47 +353,65 @@ const Reservations = () => {
               </button>
             </div>
             <form onSubmit={handleNewReservation} className="space-y-4">
-              <input
-                type="text"
-                placeholder="Chair numbers (e.g., 5 or 5,6)"
-                value={newReservation.chairNumbers}
-                onChange={(e) =>
-                  setNewReservation({
-                    ...newReservation,
-                    chairNumbers: e.target.value,
-                  })
-                }
-                className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
-                required
-              />
-              <select
-                value={newReservation.type}
-                onChange={(e) =>
-                  setNewReservation({ ...newReservation, type: e.target.value })
-                }
-                className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
-              >
-                <option value="single">Single Chair</option>
-                <option value="double">Double Chair (2 adjacent)</option>
-              </select>
-              <select
-                value={newReservation.internetType}
-                onChange={(e) =>
-                  setNewReservation({
-                    ...newReservation,
-                    internetType: e.target.value,
-                  })
-                }
-                className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
-              >
-                <option value="standard">Standard Internet</option>
-                <option value="premium">Premium Internet</option>
-              </select>
+              <div>
+                <label className="block text-sm mb-1 text-cafe-gray">
+                  Chair Number(s)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., 5 or 5,6"
+                  value={newReservation.chairNumbers}
+                  onChange={(e) =>
+                    setNewReservation({
+                      ...newReservation,
+                      chairNumbers: e.target.value,
+                    })
+                  }
+                  className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1 text-cafe-gray">
+                  Chair Type
+                </label>
+                <select
+                  value={newReservation.type}
+                  onChange={(e) =>
+                    setNewReservation({
+                      ...newReservation,
+                      type: e.target.value,
+                    })
+                  }
+                  className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
+                >
+                  <option value="single">Single Chair</option>
+                  <option value="double">Double Chair (2 adjacent)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm mb-1 text-cafe-gray">
+                  Internet Type
+                </label>
+                <select
+                  value={newReservation.internetType}
+                  onChange={(e) =>
+                    setNewReservation({
+                      ...newReservation,
+                      internetType: e.target.value,
+                    })
+                  }
+                  className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
+                >
+                  <option value="standard">Standard (بنت عادي)</option>
+                  <option value="premium">Premium (بنت سريع)</option>
+                </select>
+              </div>
               <button
                 type="submit"
-                className="w-full bg-cafe-teal py-2 rounded"
+                className="w-full bg-cafe-teal hover:bg-cafe-mid py-2 rounded font-semibold"
               >
-                Create
+                Create Reservation
               </button>
             </form>
           </div>
@@ -353,7 +424,7 @@ const Reservations = () => {
           <div className="bg-cafe-deep rounded-xl p-6 w-full max-w-md border border-cafe-mid">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
-                Add Order - Chair {showOrderModal.chairNumbers.join(",")}
+                Add Order — Chair {showOrderModal.chairNumbers.join(",")}
               </h2>
               <button onClick={() => setShowOrderModal(null)}>
                 <X />
@@ -363,17 +434,23 @@ const Reservations = () => {
               <select
                 onChange={(e) =>
                   setSelectedProduct(
-                    products.find((p) => p._id === e.target.value),
+                    products.find((p) => p._id === e.target.value)
                   )
                 }
                 className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
+                defaultValue=""
               >
-                <option value="">Select product</option>
-                {products.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.name} - {p.price} SYP (stock: {p.stock})
-                  </option>
-                ))}
+                <option value="" disabled>
+                  Select product
+                </option>
+                {products
+                  .filter((p) => p.isActive && p.stock > 0)
+                  .map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.name} — {p.price.toLocaleString()} SYP (stock:{" "}
+                      {p.stock})
+                    </option>
+                  ))}
               </select>
               {selectedProduct && (
                 <>
@@ -382,14 +459,16 @@ const Reservations = () => {
                     min="1"
                     max={selectedProduct.stock}
                     value={quantity}
-                    onChange={(e) => setQuantity(parseInt(e.target.value))}
+                    onChange={(e) =>
+                      setQuantity(parseInt(e.target.value) || 1)
+                    }
                     className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
                   />
                   <button
                     onClick={handleAddItem}
-                    className="w-full bg-cafe-teal py-2 rounded"
+                    className="w-full bg-cafe-teal hover:bg-cafe-mid py-2 rounded font-semibold"
                   >
-                    Add to order
+                    Add to Order
                   </button>
                 </>
               )}
@@ -402,31 +481,65 @@ const Reservations = () => {
       {showEndModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
           <div className="bg-cafe-deep rounded-xl p-6 w-full max-w-md border border-cafe-mid">
-            <h2 className="text-xl font-bold mb-4">Close Session</h2>
-            <div className="space-y-2 mb-4">
-              <p>Time cost: {subtotalPreview.timeCost.toFixed(2)} SYP</p>
-              <p>Items cost: {subtotalPreview.itemsCost.toFixed(2)} SYP</p>
-              <p>Subtotal: {subtotalPreview.subtotal.toFixed(2)} SYP</p>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">
+                Close Session — Chair {showEndModal.chairNumbers.join(",")}
+              </h2>
+              <button onClick={() => setShowEndModal(null)}>
+                <X />
+              </button>
+            </div>
+            <div className="space-y-3 mb-4">
+              <div className="text-sm text-cafe-gray">
+                Duration: {subtotalPreview.minutes} min (
+                {subtotalPreview.billedUnits} billed units)
+              </div>
+              <div className="flex justify-between">
+                <span>Time cost:</span>
+                <span>{subtotalPreview.timeCost.toLocaleString()} SYP</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Items cost:</span>
+                <span>{subtotalPreview.itemsCost.toLocaleString()} SYP</span>
+              </div>
+              <div className="flex justify-between border-t border-cafe-mid pt-2">
+                <span>Subtotal:</span>
+                <span>{subtotalPreview.subtotal.toLocaleString()} SYP</span>
+              </div>
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={applyDiscount}
                   onChange={(e) => setApplyDiscount(e.target.checked)}
+                  className="rounded"
                 />
-                Apply discount
+                <span>Apply discount</span>
               </label>
               {applyDiscount && (
-                <input
-                  type="number"
-                  value={discountPercent}
-                  onChange={(e) => setDiscountPercent(Number(e.target.value))}
-                  className="w-full p-2 rounded bg-cafe-mid/30"
-                  placeholder="Discount %"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={discountPercent}
+                    onChange={(e) =>
+                      setDiscountPercent(Number(e.target.value))
+                    }
+                    className="w-24 p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
+                    placeholder="%"
+                    min="0"
+                    max="100"
+                  />
+                  <span className="text-sm">%</span>
+                  <span className="text-sm text-yellow-400 ml-auto">
+                    -{subtotalPreview.discountAmt.toLocaleString()} SYP
+                  </span>
+                </div>
               )}
-              <p className="text-lg font-bold">
-                Total: {subtotalPreview.total.toFixed(2)} SYP
-              </p>
+              <div className="flex justify-between text-lg font-bold border-t border-cafe-mid pt-2">
+                <span>Total:</span>
+                <span className="text-cafe-teal">
+                  {subtotalPreview.total.toLocaleString()} SYP
+                </span>
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               <button
@@ -437,7 +550,7 @@ const Reservations = () => {
               </button>
               <button
                 onClick={handleCloseReservation}
-                className="px-4 py-2 bg-cafe-teal rounded"
+                className="px-4 py-2 bg-cafe-teal rounded font-semibold"
               >
                 Confirm & Print
               </button>

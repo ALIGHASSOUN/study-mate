@@ -8,27 +8,10 @@ const {
 } = require("../controllers/userController");
 const { protect } = require("../middlewares/authMiddleware");
 const { authorize } = require("../middlewares/roleMiddleware");
-const {
-  validate,
-  createUserSchema,
-  updateUserSchema,
-} = require("../validators/schemas");
 
 router.get("/", protect, authorize("admin"), getCashiers);
-router.post(
-  "/",
-  protect,
-  authorize("admin"),
-  validate(createUserSchema),
-  createCashier
-);
-router.put(
-  "/:id",
-  protect,
-  authorize("admin"),
-  validate(updateUserSchema),
-  updateCashier
-);
+router.post("/", protect, authorize("admin"), createCashier);
+router.put("/:id", protect, authorize("admin"), updateCashier);
 router.delete("/:id", protect, authorize("admin"), deleteCashier);
 
 module.exports = router;

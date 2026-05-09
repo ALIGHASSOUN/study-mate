@@ -8,23 +8,10 @@ const {
 } = require("../controllers/productController");
 const { protect } = require("../middlewares/authMiddleware");
 const { authorize } = require("../middlewares/roleMiddleware");
-const { validate, productSchema } = require("../validators/schemas");
 
 router.get("/", protect, getProducts);
-router.post(
-  "/",
-  protect,
-  authorize("admin"),
-  validate(productSchema),
-  createProduct
-);
-router.put(
-  "/:id",
-  protect,
-  authorize("admin"),
-  validate(productSchema),
-  updateProduct
-);
+router.post("/", protect, authorize("admin"), createProduct);
+router.put("/:id", protect, authorize("admin"), updateProduct);
 router.delete("/:id", protect, authorize("admin"), deleteProduct);
 
 module.exports = router;

@@ -7,15 +7,10 @@ const {
   removeItem,
 } = require("../controllers/reservationController");
 const { protect } = require("../middlewares/authMiddleware");
-const {
-  validate,
-  createReservationSchema,
-  addItemSchema,
-} = require("../validators/schemas");
 
 router.get("/active", protect, getActiveReservations);
-router.post("/", protect, validate(createReservationSchema), createReservation);
-router.post("/:id/items", protect, validate(addItemSchema), addItem);
+router.post("/", protect, createReservation);
+router.post("/:id/items", protect, addItem);
 router.delete("/:id/items/:itemId", protect, removeItem);
 
 module.exports = router;
