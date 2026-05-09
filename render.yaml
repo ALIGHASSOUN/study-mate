@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: study-cafe
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: bash build.sh
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false # You must set this manually in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 18h
+      - key: CLIENT_URL
+        value: "" # Will be set after deploy (your Render URL)
