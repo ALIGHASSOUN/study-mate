@@ -11,10 +11,9 @@ cd frontend
 npm install --include=dev
 
 echo "🔨 Building frontend..."
-npm run build
+npx vite build
 
 echo "📁 Copying frontend build to backend/public..."
-rm -rf ../backend/public
 cp -r dist ../backend/public
 
 cd ..
