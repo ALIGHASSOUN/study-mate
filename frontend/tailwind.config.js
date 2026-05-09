@@ -4,14 +4,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        cafe: {
-          dark: "#0D1F23",
-          primary: "#132E35",
-          muted: "#2D4A53",
-          cool: "#69818D",
-          accent: "#AFB3B7",
-          gray: "#5A636A",
-        },
+        "cafe-dark": "#0D1F23",
+        "cafe-deep": "#132E35",
+        "cafe-mid": "#2D4A53",
+        "cafe-teal": "#69818D",
+        "cafe-light": "#AFB3B7",
+        "cafe-gray": "#5A636A",
       },
     },
   },

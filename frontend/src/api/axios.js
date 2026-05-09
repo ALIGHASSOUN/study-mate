@@ -1,8 +1,11 @@
 import axios from "axios";
 
-const instance = axios.create({
-  baseURL: "/api",
-  withCredentials: true,
+const api = axios.create({
+  baseURL: "/api", // will be proxied to backend
+  withCredentials: true, // send cookies
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-export default instance;
+export default api;
