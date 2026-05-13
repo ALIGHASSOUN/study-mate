@@ -1,6 +1,6 @@
 /* Thermal Receipt Print Styles - 80mm paper */
 @page {
-  size: 80mm auto;
+  size: 72mm auto;
   margin: 0;
 }
 
@@ -19,12 +19,21 @@
     position: absolute;
     left: 0;
     top: 0;
-    width: 80mm;
+    width: 72mm;
+    padding: 0 3mm;
+    box-sizing: border-box;
     font-family: "Courier New", Courier, monospace;
     font-size: 11px;
     line-height: 1.4;
     color: #000;
     background: #fff;
+  }
+
+  /* Prevent any child element from overflowing */
+  .print-area * {
+    max-width: 100%;
+    word-wrap: break-word;
+    box-sizing: border-box;
   }
 
   /* Hide screen-only elements */
@@ -33,9 +42,11 @@
   }
 
   /* Remove shadows, backgrounds, borders from non-receipt elements */
+  html,
   body {
     background: #fff !important;
     margin: 0 !important;
     padding: 0 !important;
+    width: 72mm;
   }
 }
