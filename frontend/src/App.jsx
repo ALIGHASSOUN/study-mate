@@ -13,6 +13,9 @@ import CashierSessions from "./pages/CashierSessions";
 import InvoicesPage from "./pages/InvoicesPage";
 import UsersPage from "./pages/UsersPage";
 import PrintInvoice from "./pages/PrintInvoice";
+import OnHousePage from "./pages/OnHousePage";
+import OnHouseAllPage from "./pages/OnHouseAllPage";
+import OnHouseByUserPage from "./pages/OnHouseByUserPage";
 import { Armchair, FileText, DollarSign, Users, Clock } from "lucide-react";
 import api from "./api/axios";
 
@@ -185,6 +188,14 @@ function App() {
           }
         />
         <Route
+          path="/on-house"
+          element={
+            <AuthLayout allowedRoles={["admin", "cashier"]}>
+              <OnHousePage />
+            </AuthLayout>
+          }
+        />
+        <Route
           path="/inventory"
           element={
             <AuthLayout allowedRoles={["admin"]}>
@@ -197,6 +208,22 @@ function App() {
           element={
             <AuthLayout allowedRoles={["admin"]}>
               <InvoicesPage />
+            </AuthLayout>
+          }
+        />
+        <Route
+          path="/on-house-all"
+          element={
+            <AuthLayout allowedRoles={["admin"]}>
+              <OnHouseAllPage />
+            </AuthLayout>
+          }
+        />
+        <Route
+          path="/on-house-by-user"
+          element={
+            <AuthLayout allowedRoles={["admin"]}>
+              <OnHouseByUserPage />
             </AuthLayout>
           }
         />

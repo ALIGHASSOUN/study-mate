@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
   getCashiers,
+  getAllStaff,
   createCashier,
   updateCashier,
   deleteCashier,
@@ -13,6 +14,9 @@ const {
   createUserSchema,
   updateUserSchema,
 } = require("../validators/schemas");
+
+// Staff (admins + cashiers) — accessible by any logged-in user (for on-house dropdown)
+router.get("/staff", protect, getAllStaff);
 
 router.get("/", protect, authorize("admin"), getCashiers);
 router.post(

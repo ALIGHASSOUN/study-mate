@@ -10,6 +10,7 @@ import {
   Trash2,
   Plus,
   X,
+  User as UserIcon,
 } from "lucide-react";
 
 const InvoicesPage = () => {
@@ -113,6 +114,15 @@ const InvoicesPage = () => {
     return Math.round(num).toLocaleString();
   };
 
+  // helper to display cashier
+  const cashierLabel = (inv) => {
+    if (!inv.cashierId) return "?";
+    if (typeof inv.cashierId === "object" && inv.cashierId.username) {
+      return `${inv.cashierId.username}${inv.cashierId.role === "admin" ? " (admin)" : ""}`;
+    }
+    return "?";
+  };
+
   if (user?.role !== "admin") {
     return (
       <div className="text-center mt-10 text-red-500">
@@ -128,7 +138,7 @@ const InvoicesPage = () => {
           <h1 className="text-3xl font-bold text-cafe-teal">Invoices</h1>
           <button
             onClick={() => setShowManualModal(true)}
-            className="bg-cafe-teal hover:bg-cafe-mid px-4 py-2 rounded flex items-center gap-2"
+            className="bg-cafe-teal hover:bg-cafe-mid px-4 py-2 rounded flex items-center gap-2 text-white"
           >
             <Plus size={18} /> Manual Invoice
           </button>
@@ -197,6 +207,10 @@ const InvoicesPage = () => {
                               </span>
                               <span className="text-xs bg-cafe-mid/40 px-2 py-0.5 rounded">
                                 {inv.type} / {inv.internetType || "standard"}
+                              </span>
+                              <span className="text-xs bg-cafe-teal/30 text-cafe-light px-2 py-0.5 rounded flex items-center gap-1">
+                                <UserIcon size={11} />
+                                {cashierLabel(inv)}
                               </span>
                             </div>
                             <div className="text-xs text-cafe-gray mt-1">
@@ -272,7 +286,7 @@ const InvoicesPage = () => {
                 onChange={(e) =>
                   setManualForm({ ...manualForm, chairNumbers: e.target.value })
                 }
-                className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
+                className="w-full p-2 rounded bg-black border border-cafe-mid text-white"
                 required
               />
               <select
@@ -280,7 +294,7 @@ const InvoicesPage = () => {
                 onChange={(e) =>
                   setManualForm({ ...manualForm, type: e.target.value })
                 }
-                className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
+                className="w-full p-2 rounded bg-black border border-cafe-mid text-white"
               >
                 <option value="single">Single</option>
                 <option value="double">Double</option>
@@ -291,7 +305,7 @@ const InvoicesPage = () => {
                 onChange={(e) =>
                   setManualForm({ ...manualForm, internetType: e.target.value })
                 }
-                className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
+                className="w-full p-2 rounded bg-black border border-cafe-mid text-white"
               >
                 <option value="standard">Standard Internet</option>
                 <option value="premium">Premium Internet</option>
@@ -304,7 +318,7 @@ const InvoicesPage = () => {
                   onChange={(e) =>
                     setManualForm({ ...manualForm, startedAt: e.target.value })
                   }
-                  className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
+                  className="w-full p-2 rounded bg-black border border-cafe-mid text-white"
                   required
                 />
               </div>
@@ -316,7 +330,7 @@ const InvoicesPage = () => {
                   onChange={(e) =>
                     setManualForm({ ...manualForm, endedAt: e.target.value })
                   }
-                  className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
+                  className="w-full p-2 rounded bg-black border border-cafe-mid text-white"
                   required
                 />
               </div>
@@ -331,7 +345,7 @@ const InvoicesPage = () => {
                       discountPercent: e.target.value,
                     })
                   }
-                  className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
+                  className="w-full p-2 rounded bg-black border border-cafe-mid text-white"
                   min="0"
                   max="100"
                 />
@@ -340,13 +354,13 @@ const InvoicesPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowManualModal(false)}
-                  className="px-4 py-2 rounded bg-gray-600"
+                  className="px-4 py-2 rounded bg-gray-700 text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-cafe-teal"
+                  className="px-4 py-2 rounded bg-cafe-teal text-white"
                 >
                   Create Invoice
                 </button>
@@ -380,7 +394,7 @@ const InvoicesPage = () => {
                       discountPercent: e.target.value,
                     })
                   }
-                  className="w-full p-2 rounded bg-cafe-mid/30 border border-cafe-mid"
+                  className="w-full p-2 rounded bg-black border border-cafe-mid text-white"
                   min="0"
                   max="100"
                 />
@@ -389,13 +403,13 @@ const InvoicesPage = () => {
                 <button
                   type="button"
                   onClick={() => setEditModal(null)}
-                  className="px-4 py-2 rounded bg-gray-600"
+                  className="px-4 py-2 rounded bg-gray-700 text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-cafe-teal"
+                  className="px-4 py-2 rounded bg-cafe-teal text-white"
                 >
                   Save
                 </button>

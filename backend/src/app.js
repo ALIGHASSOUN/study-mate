@@ -13,6 +13,7 @@ const settingsRoutes = require("./routes/settingsRoutes");
 const reservationRoutes = require("./routes/reservationRoutes");
 const userRoutes = require("./routes/userRoutes");
 const invoiceRoutes = require("./routes/invoiceRoutes");
+const onHouseRoutes = require("./routes/onHouseRoutes");
 
 const dotenv = require("dotenv");
 dotenv.config();
@@ -78,6 +79,7 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/reservations", reservationRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/invoices", invoiceRoutes);
+app.use("/api/on-house", onHouseRoutes);
 
 // Serve frontend in production
 // After building frontend (npm run build), copy dist/ to backend/public/

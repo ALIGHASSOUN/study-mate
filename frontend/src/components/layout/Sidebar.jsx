@@ -12,6 +12,8 @@ import {
   LogOut,
   Menu,
   X,
+  Coffee,
+  PieChart,
 } from "lucide-react";
 
 const Sidebar = ({ children }) => {
@@ -20,14 +22,18 @@ const Sidebar = ({ children }) => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isAdmin = user?.role === "admin";
-
   const navItems = [
     { path: "/", label: "Dashboard", icon: Home, roles: ["admin", "cashier"] },
     {
       path: "/reservations",
       label: "Reservations",
       icon: Armchair,
+      roles: ["admin", "cashier"],
+    },
+    {
+      path: "/on-house",
+      label: "On House",
+      icon: Coffee,
       roles: ["admin", "cashier"],
     },
     {
@@ -40,6 +46,18 @@ const Sidebar = ({ children }) => {
       path: "/invoices",
       label: "Invoices",
       icon: FileText,
+      roles: ["admin"],
+    },
+    {
+      path: "/on-house-all",
+      label: "On-House (All)",
+      icon: Coffee,
+      roles: ["admin"],
+    },
+    {
+      path: "/on-house-by-user",
+      label: "On-House / Staff",
+      icon: PieChart,
       roles: ["admin"],
     },
     {
@@ -67,7 +85,7 @@ const Sidebar = ({ children }) => {
           {user?.username || user?.role} ({user?.role})
         </p>
       </div>
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {filteredItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;

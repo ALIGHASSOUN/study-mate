@@ -15,6 +15,20 @@ const getCashiers = async (req, res) => {
   }
 };
 
+// @desc    Get ALL staff (admins + cashiers) — for on-house dropdown
+// @route   GET /api/users/staff
+// @access  cashier + admin (any logged-in user)
+const getAllStaff = async (req, res) => {
+  try {
+    const users = await User.find({ isActive: true })
+      .select("username role")
+      .sort({ role: 1, username: 1 });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Create new cashier
 // @route   POST /api/users
 // @access  Admin
@@ -79,4 +93,10 @@ const deleteCashier = async (req, res) => {
   }
 };
 
-module.exports = { getCashiers, createCashier, updateCashier, deleteCashier };
+module.exports = {
+  getCashiers,
+  getAllStaff,
+  createCashier,
+  updateCashier,
+  deleteCashier,
+};

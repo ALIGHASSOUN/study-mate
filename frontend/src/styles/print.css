@@ -1,4 +1,4 @@
-/* Thermal Receipt Print Styles - 80mm paper */
+/* Thermal Receipt Print Styles - 80mm paper (72mm effective print area) */
 @page {
   size: 72mm auto;
   margin: 0;
@@ -29,7 +29,7 @@
     background: #fff;
   }
 
-  /* Prevent any child element from overflowing */
+  /* Prevent any child element from overflowing the receipt width */
   .print-area * {
     max-width: 100%;
     word-wrap: break-word;

@@ -18,6 +18,32 @@ body {
   color: var(--cafe-light);
 }
 
+/*
+ * Make all <select> options readable across browsers.
+ * Default browser styling for <option> sometimes inherits transparent
+ * bg from the parent, giving white-on-white. Force black bg + white text.
+ */
+select,
+select option,
+select optgroup {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+/* When the select itself is rendered, keep it consistent with our theme
+   but ensure text is readable */
+select {
+  color-scheme: dark;
+}
+
+/* For native dropdowns on Windows/Chrome, this helps */
+select option:checked,
+select option:hover,
+select option:focus {
+  background-color: var(--cafe-teal) !important;
+  color: #fff !important;
+}
+
 /* Example custom component class (you can expand later) */
 @layer components {
   .btn-primary {

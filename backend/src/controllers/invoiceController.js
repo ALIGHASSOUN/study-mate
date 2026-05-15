@@ -108,7 +108,8 @@ const getInvoices = async (req, res) => {
     const invoices = await Invoice.find()
       .sort({ date: -1, createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .populate("cashierId", "username role");
 
     const total = await Invoice.countDocuments();
 
@@ -140,9 +141,9 @@ const getInvoicesByDay = async (req, res) => {
     // date field is now a "YYYY-MM-DD" string, so exact match
     const dateStr = req.params.date; // e.g. "2025-05-09"
 
-    const invoices = await Invoice.find({ date: dateStr }).sort({
-      createdAt: -1,
-    });
+    const invoices = await Invoice.find({ date: dateStr })
+      .sort({ createdAt: -1 })
+      .populate("cashierId", "username role");
 
     const dayTotal = invoices.reduce((sum, inv) => sum + inv.total, 0);
     res.json({ date: dateStr, invoices, dayTotal });
@@ -155,7 +156,10 @@ const getInvoicesByDay = async (req, res) => {
 // @route   GET /api/invoices/:id
 const getInvoiceById = async (req, res) => {
   try {
-    const invoice = await Invoice.findById(req.params.id);
+    const invoice = await Invoice.findById(req.params.id).populate(
+      "cashierId",
+      "username role"
+    );
     if (!invoice) return res.status(404).json({ message: "Invoice not found" });
     res.json(invoice);
   } catch (error) {
