@@ -32,7 +32,7 @@ const InvoicesPage = () => {
 
   const fetchInvoices = async () => {
     try {
-      const res = await api.get("/invoices");
+      const res = await api.get("/invoices?limit=10000");
       setDays(res.data.days || []);
     } catch (err) {
       toast.error("Failed to load invoices");
@@ -176,7 +176,7 @@ const InvoicesPage = () => {
                           year: "numeric",
                           month: "short",
                           day: "numeric",
-                        }
+                        },
                       )}
                     </span>
                     <span className="text-sm text-cafe-gray">
