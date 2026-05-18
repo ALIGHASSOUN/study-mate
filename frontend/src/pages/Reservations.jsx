@@ -188,7 +188,8 @@ const Reservations = () => {
 
   const handleCloseReservation = async () => {
     try {
-      const invoice = await dispatch(
+      // payload الآن: { invoice, closedReservationId }
+      const result = await dispatch(
         closeReservation({
           id: showEndModal._id,
           applyDiscount,
@@ -198,7 +199,7 @@ const Reservations = () => {
       toast.success("Session closed");
       setShowEndModal(null);
       // Open print page
-      window.open(`/print-invoice/${invoice._id}`, "_blank");
+      window.open(`/print-invoice/${result.invoice._id}`, "_blank");
     } catch (err) {
       toast.error(err || "Failed to close session");
     }

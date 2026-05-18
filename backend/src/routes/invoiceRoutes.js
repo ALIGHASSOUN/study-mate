@@ -18,6 +18,8 @@ const {
   updateInvoiceSchema,
 } = require("../validators/schemas");
 
+// ⚠️  المسارات الثابتة يجب أن تأتي قبل المسارات الديناميكية /:id
+
 // Close reservation -> create invoice (cashier + admin)
 router.post(
   "/reservations/:id/close",
@@ -26,9 +28,13 @@ router.post(
   closeReservation
 );
 
-// Invoice CRUD (admin only, except getById for printing)
+// List all invoices (admin only)
 router.get("/", protect, authorize("admin"), getInvoices);
+
+// Invoices by specific day — MUST be before /:id
 router.get("/by-day/:date", protect, authorize("admin"), getInvoicesByDay);
+
+// Create manual invoice (admin only)
 router.post(
   "/manual",
   protect,
@@ -36,6 +42,12 @@ router.post(
   validate(manualInvoiceSchema),
   createManualInvoice
 );
+
+// Get single invoice by ID — accessible by cashier too (for print)
+// هذا يجب أن يأتي بعد /by-day/:date و /manual
+router.get("/:id", protect, getInvoiceById);
+
+// Update invoice (admin only)
 router.put(
   "/:id",
   protect,
@@ -43,9 +55,8 @@ router.put(
   validate(updateInvoiceSchema),
   updateInvoice
 );
-router.delete("/:id", protect, authorize("admin"), deleteInvoice);
 
-// Get by ID - accessible by cashier too (for print)
-router.get("/:id", protect, getInvoiceById);
+// Delete invoice (admin only)
+router.delete("/:id", protect, authorize("admin"), deleteInvoice);
 
 module.exports = router;

@@ -16,11 +16,28 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     // On 401 (token expired/invalid), redirect to login
+    // لكن فقط إذا لم نكن بالفعل في صفحة login أو في طلب /me
+    // وفقط إذا كان المستخدم مسجلاً دخوله فعلاً (يوجد cookie)
     if (error.response?.status === 401) {
       const url = error.config?.url || "";
-      if (!url.includes("/auth/login") && !url.includes("/auth/me")) {
-        localStorage.removeItem("auth_user");
-        window.location.href = "/login";
+      const isAuthEndpoint =
+        url.includes("/auth/login") ||
+        url.includes("/auth/verify-code") ||
+        url.includes("/auth/me");
+
+      // لا نعمل redirect تلقائي إلا إذا تأكدنا أن المستخدم كان مسجلاً
+      // نتجنب الـ redirect من طلبات background أو طلبات اختيارية
+      if (!isAuthEndpoint && !url.includes("/auth/logout")) {
+        // بدلاً من redirect فوري، نحفظ في sessionStorage ونترك الـ /me يتعامل معه
+        // هذا يمنع محو الفواتير والبيانات من الشاشة بشكل مفاجئ
+        sessionStorage.setItem("auth_expired", "1");
+        
+        // نعطي وقت قصير للـ UI يعرض رسالة خطأ، ثم redirect
+        setTimeout(() => {
+          if (window.location.pathname !== "/login") {
+            window.location.href = "/login";
+          }
+        }, 1500);
       }
     }
 

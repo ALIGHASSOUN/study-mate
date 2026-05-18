@@ -44,7 +44,8 @@ export const closeReservation = createAsyncThunk(
         applyDiscount,
         discountPercentOverride: discountPercent,
       });
-      return response.data; // returns invoice
+      // نرجع الـ invoice مع الـ reservationId الأصلي (id) عشان نعرف نحذف الحجز من الـ state
+      return { invoice: response.data, closedReservationId: id };
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to close",
@@ -94,8 +95,11 @@ const reservationSlice = createSlice({
       })
       .addCase(closeReservation.fulfilled, (state, action) => {
         state.loading = false;
+        // نستخدم closedReservationId الذي أرسلناه بدلاً من reservationId من الـ invoice
+        // لأن reservationId في الـ invoice قد يكون ObjectId object وليس string
+        const { closedReservationId } = action.payload;
         state.active = state.active.filter(
-          (r) => r._id !== action.payload.reservationId,
+          (r) => r._id !== closedReservationId,
         );
       })
       .addCase(closeReservation.rejected, (state, action) => {
