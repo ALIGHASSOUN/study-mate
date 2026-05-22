@@ -90,6 +90,12 @@ const createReservation = async (req, res) => {
     });
     res.status(201).json(reservation);
   } catch (error) {
+    // إذا حصل duplicate key (race condition تم منعه بواسطة unique index)
+    if (error.code === 11000) {
+      return res
+        .status(409)
+        .json({ message: "One or more chairs already occupied" });
+    }
     res.status(500).json({ message: error.message });
   }
 };

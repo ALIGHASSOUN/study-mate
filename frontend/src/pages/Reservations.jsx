@@ -33,6 +33,10 @@ const Reservations = () => {
   const [showEndModal, setShowEndModal] = useState(null);
   const [applyDiscount, setApplyDiscount] = useState(false);
   const [discountPercent, setDiscountPercent] = useState(0);
+  // قفل لمنع الضغط المتكرر على Confirm & Print
+  const [isClosing, setIsClosing] = useState(false);
+  // قفل لمنع الضغط المتكرر على Create Reservation
+  const [isCreating, setIsCreating] = useState(false);
   const [subtotalPreview, setSubtotalPreview] = useState({
     timeCost: 0,
     itemsCost: 0,
@@ -124,6 +128,9 @@ const Reservations = () => {
 
   const handleNewReservation = async (e) => {
     e.preventDefault();
+    // ⛔ منع الضغط المتكرر / إرسال الـ form مرتين
+    if (isCreating) return;
+
     if (!cashierSessionId) {
       toast.error("No active cashier session. Please ask admin to create one.");
       return;
@@ -135,6 +142,8 @@ const Reservations = () => {
       toast.error("Enter valid chair numbers separated by comma");
       return;
     }
+
+    setIsCreating(true);
     try {
       await dispatch(
         createReservation({
@@ -153,6 +162,8 @@ const Reservations = () => {
       });
     } catch (err) {
       toast.error(err.message || err || "Failed to create reservation");
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -187,6 +198,9 @@ const Reservations = () => {
   };
 
   const handleCloseReservation = async () => {
+    // ⛔ منع الضغط المتكرر — إذا قيد التنفيذ بالفعل، تجاهل
+    if (isClosing) return;
+    setIsClosing(true);
     try {
       // payload الآن: { invoice, closedReservationId }
       const result = await dispatch(
@@ -202,6 +216,8 @@ const Reservations = () => {
       window.open(`/print-invoice/${result.invoice._id}`, "_blank");
     } catch (err) {
       toast.error(err || "Failed to close session");
+    } finally {
+      setIsClosing(false);
     }
   };
 
@@ -410,9 +426,10 @@ const Reservations = () => {
               </div>
               <button
                 type="submit"
-                className="w-full bg-cafe-teal hover:bg-cafe-mid py-2 rounded font-semibold"
+                disabled={isCreating}
+                className="w-full bg-cafe-teal hover:bg-cafe-mid py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Create Reservation
+                {isCreating ? "Creating..." : "Create Reservation"}
               </button>
             </form>
           </div>
@@ -551,9 +568,10 @@ const Reservations = () => {
               </button>
               <button
                 onClick={handleCloseReservation}
-                className="px-4 py-2 bg-cafe-teal rounded font-semibold"
+                disabled={isClosing}
+                className="px-4 py-2 bg-cafe-teal rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Confirm & Print
+                {isClosing ? "Processing..." : "Confirm & Print"}
               </button>
             </div>
           </div>

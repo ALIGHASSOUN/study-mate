@@ -25,7 +25,7 @@ const reservationSchema = new mongoose.Schema(
     discountPercent: { type: Number, required: true, default: 0 },
     startedAt: { type: Date, default: Date.now },
     items: [itemSchema],
-    status: { type: String, enum: ["active", "closed"], default: "active" },
+    status: { type: String, enum: ["active", "closing", "closed"], default: "active" },
     cashierId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -38,6 +38,16 @@ const reservationSchema = new mongoose.Schema(
     },
   },
   { timestamps: true },
+);
+
+// 🔒 Partial unique index: منع وجود حجزين نشطين لنفس الكرسي
+// هذا يمنع التكرار على مستوى قاعدة البيانات حتى لو race condition حصل
+reservationSchema.index(
+  { chairNumbers: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: { $in: ["active", "closing"] } },
+  }
 );
 
 module.exports =
